@@ -84,6 +84,7 @@ cc_defaults {
         "-Wall",
         "-Werror",
         "-Wno-unused-variable",
+        "-O3",
     ],
     shared_libs: [
         // ***** DO NOT ADD NEW DEPENDENCIES HERE *****

@@ -62,6 +62,8 @@ cc_library_shared {
         "-fstandalone-debug",
 
         //"-DLOG_NDEBUG=0",
+
+        "-O3",
     ],
 
     cppflags: [
@@ -71,6 +73,7 @@ cc_library_shared {
         "-Wno-float-equal",
         "-Wno-global-constructors",
         "-Wno-zero-length-array",
+        "-O3",
     ],
 
     srcs: [
