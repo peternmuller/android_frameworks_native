@@ -86,6 +86,7 @@ Scheduler::~Scheduler() {
     // Stop timers and wait for their threads to exit.
     mDisplayPowerTimer.reset();
     mTouchTimer.reset();
+    mHeuristicIdleTimer.reset();
 
     // Stop idle timer and clear callbacks, as the RefreshRateSelector may outlive the Scheduler.
     demotePacesetterDisplay({.toggleIdleTimer = true});
@@ -737,6 +738,9 @@ void Scheduler::onTouchHint() {
         mTouchTimer->reset();
         pacesetterSelectorPtr()->resetKernelIdleTimer();
     }
+    if (mHeuristicIdleTimer) {
+        mHeuristicIdleTimer->reset();
+    }
 }
 
 void Scheduler::setDisplayPowerMode(PhysicalDisplayId id, hal::PowerMode powerMode) {
@@ -825,6 +829,11 @@ void Scheduler::kernelIdleTimerCallback(TimerState state) {
 void Scheduler::idleTimerCallback(TimerState state) {
     applyPolicy(&Policy::idleTimer, state);
     ATRACE_INT("ExpiredIdleTimer", static_cast<int>(state));
+}
+
+void Scheduler::heuristicIdleTimerCallback(TimerState state) {
+    applyPolicy(&Policy::heuristicIdleTimer, state);
+    ALOGV("%s: TimerState %d", __func__, static_cast<int>(state));
 }
 
 void Scheduler::touchTimerCallback(TimerState state) {
@@ -963,6 +972,13 @@ std::shared_ptr<VsyncSchedule> Scheduler::promotePacesetterDisplayLocked(
 
             pacesetter.selectorPtr->startIdleTimer();
         }
+
+        mHeuristicIdleTimer.emplace(
+                "heuristicIdleTimer",
+                std::max(HEURISTIC_TIMEOUT, pacesetter.selectorPtr->getIdleTimerTimeout()),
+                [this] { heuristicIdleTimerCallback(TimerState::Reset); },
+                [this] { heuristicIdleTimerCallback(TimerState::Expired); });
+        mHeuristicIdleTimer->start();
 
         newVsyncSchedulePtr = pacesetter.schedulePtr;
 
@@ -1208,7 +1224,8 @@ GlobalSignals Scheduler::makeGlobalSignals() const {
 
     return {.touch = mTouchTimer && mPolicy.touch == TouchState::Active,
             .idle = mPolicy.idleTimer == TimerState::Expired,
-            .powerOnImminent = powerOnImminent};
+            .powerOnImminent = powerOnImminent,
+            .heuristicIdle = mPolicy.heuristicIdleTimer == TimerState::Expired};
 }
 
 FrameRateMode Scheduler::getPreferredDisplayMode() {
