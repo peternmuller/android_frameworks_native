@@ -528,6 +528,9 @@ cc_library {
             ],
         },
     },
+    lto: {
+        thin: true,
+    },
 
     afdo: true,
     lto_Instr100: true,
