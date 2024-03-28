@@ -22,9 +22,7 @@ struct Afp_Interface {
 static Afp_Interface AFP;
 void AFPLoadAndInit() {
     AFP.mPenguinHandle = dlopen("libpenguin.so", RTLD_NOW);
-    if (!AFP.mPenguinHandle) {
-        ALOGE("Unable to open libpenguin.so: %s.", dlerror());
-    } else {
+    if (AFP.mPenguinHandle) {
         AFP.mPenguinInit=
             (bool (*) ())dlsym(AFP.mPenguinHandle, "penguinInit");
         AFP.mPenguinQueueBuffer =
