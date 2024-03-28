@@ -27,7 +27,6 @@ static void qtiInitAppType() {
     sp<IServiceManager> sm = defaultServiceManager();
     sPerfService = sm->checkService(String16("vendor.perfservice"));
     if (sPerfService == nullptr) {
-        ALOGE("Cannot find perfservice");
         return;
     }
     String16 ifName = sPerfService->getInterfaceDescriptor();
