@@ -437,7 +437,6 @@ void ConsumerFrameEventHistory::addLatch(
         uint64_t frameNumber, nsecs_t latchTime) {
     FrameEvents* frame = getFrame(frameNumber, &mCompositionOffset);
     if (frame == nullptr) {
-        ALOGE_IF(mProducerWantsEvents, "addLatch: Did not find frame.");
         return;
     }
     frame->latchTime = latchTime;
@@ -448,8 +447,6 @@ void ConsumerFrameEventHistory::addPreComposition(
         uint64_t frameNumber, nsecs_t refreshStartTime) {
     FrameEvents* frame = getFrame(frameNumber, &mCompositionOffset);
     if (frame == nullptr) {
-        ALOGE_IF(mProducerWantsEvents,
-                "addPreComposition: Did not find frame.");
         return;
     }
     frame->lastRefreshStartTime = refreshStartTime;
@@ -468,8 +465,6 @@ void ConsumerFrameEventHistory::addPostComposition(uint64_t frameNumber,
 
     FrameEvents* frame = getFrame(frameNumber, &mCompositionOffset);
     if (frame == nullptr) {
-        ALOGE_IF(mProducerWantsEvents,
-                "addPostComposition: Did not find frame.");
         return;
     }
     // Only get GPU and present info for the first composite.
@@ -488,7 +483,6 @@ void ConsumerFrameEventHistory::addRelease(uint64_t frameNumber,
         nsecs_t dequeueReadyTime, std::shared_ptr<FenceTime>&& release) {
     FrameEvents* frame = getFrame(frameNumber, &mReleaseOffset);
     if (frame == nullptr) {
-        ALOGE_IF(mProducerWantsEvents, "addRelease: Did not find frame.");
         return;
     }
     frame->addReleaseCalled = true;
