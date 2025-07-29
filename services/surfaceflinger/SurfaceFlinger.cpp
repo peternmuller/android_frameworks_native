@@ -1374,7 +1374,8 @@ void SurfaceFlinger::setDesiredMode(display::DisplayModeRequest&& desiredMode) {
 
     const auto display = getDisplayDeviceLocked(displayId);
     if (mDeferRefreshRateWhenOff && display->getPowerMode() == hal::PowerMode::OFF) {
-        ALOGI("%s: deferring because display is powered off", __func__);
+        ALOGI("%s: deferring because display is powered off: %s", __func__,
+              to_string(mode).c_str());
         mLastActiveMode = mode;
         return;
     }
@@ -3828,6 +3829,16 @@ std::optional<DisplayModeId> SurfaceFlinger::processHotplugConnect(PhysicalDispl
     if (!activeMode) {
         ALOGE("Failed to hotplug %s", displayString);
         return std::nullopt;
+    }
+    if (mDeferRefreshRateWhenOff) {
+        for (const auto& modePair : displayModes) {
+            const DisplayModePtr& mode = modePair.second;
+            if (isApproxEqual(60_Hz, mode->getVsyncRate())) {
+                ALOGI("Set idle refresh rate mode %d", modePair.first);
+                mIdleRefreshRateMode = scheduler::FrameRateMode{mode->getVsyncRate(),
+                                                                ftl::as_non_null(mode)};
+            }
+        }
     }
 
     const DisplayModeId activeModeId = activeMode->getId();
@@ -6680,13 +6691,12 @@ void SurfaceFlinger::setPowerModeInternal(const sp<DisplayDevice>& display, hal:
         }
 
         getHwComposer().setPowerMode(displayId, mode);
-        if (mLastActiveMode) {
-            ALOGI("Deferred active mode change pending, applying now");
+        if (mLastActiveMode && mIdleRefreshRateMode) {
+            ALOGI("Deferred active mode change pending, going idle first");
             setDesiredMode(
-                 {.mode = mLastActiveMode.value(),
+                 {.mode = mIdleRefreshRateMode.value(),
                   .emitEvent = true,
                   .force = true});
-            mLastActiveMode = std::nullopt;
         }
         /* QTI_BEGIN */
         if (!qtiIsDummyDisplay) {
@@ -6821,6 +6831,16 @@ void SurfaceFlinger::setPowerModeInternal(const sp<DisplayDevice>& display, hal:
     }
     mQtiSFExtnIntf->qtiSetEarlyWakeUpConfig(display, mode, isInternalDisplay);
     /* QTI_END */
+
+    if (mLastActiveMode && mode == hal::PowerMode::ON) {
+        ALOGI("Deferred active mode change pending, applying now: %s",
+                to_string(mLastActiveMode.value()).c_str());
+        setDesiredMode(
+                {.mode = mLastActiveMode.value(),
+                .emitEvent = true,
+                .force = true});
+        mLastActiveMode = std::nullopt;
+    }
 
     mScheduler->setDisplayPowerMode(displayId, mode);
 

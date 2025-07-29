@@ -1448,6 +1448,7 @@ private:
     bool mLumaSampling = true;
 
     bool mDeferRefreshRateWhenOff = false;
+    std::optional<scheduler::FrameRateMode> mIdleRefreshRateMode;
     std::optional<scheduler::FrameRateMode> mLastActiveMode GUARDED_BY(mStateLock);
 
     sp<RegionSamplingThread> mRegionSamplingThread;
